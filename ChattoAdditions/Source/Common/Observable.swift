@@ -34,6 +34,9 @@ public class Observable<T> {
 
     public var value: T {
         didSet {
+            lock.lock()
+            defer { lock.unlock() }
+            
             self.cleanDeadObservers()
             for observer in self.observers {
                 observer.closure(oldValue, self.value)
@@ -42,11 +45,17 @@ public class Observable<T> {
     }
 
     public func observe(_ observer: AnyObject, closure: @escaping (_ old: T, _ new: T) -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+        
         self.observers.append(Observer(owner: observer, closure: closure))
         self.cleanDeadObservers()
     }
 
     public func removeObserver(_ observer: AnyObject) {
+        lock.lock()
+        defer { lock.unlock() }
+        
         self.observers.removeAll { $0.owner === observer }
     }
 
@@ -55,6 +64,8 @@ public class Observable<T> {
     }
 
     private lazy var observers = [Observer<T>]()
+    
+    private var lock: NSRecursiveLock = .init()
 }
 
 private struct Observer<T> {
