@@ -96,8 +96,23 @@ open class BaseMessagePresenter<BubbleViewT, ViewModelBuilderT, InteractionHandl
     public let viewModelBuilder: ViewModelBuilderT
     public let interactionHandler: InteractionHandlerT?
     public let cellStyle: BaseMessageCollectionViewCellStyleProtocol
+        
+    private let lock: NSRecursiveLock = .init()
+        
+    private lazy var _messageViewModel: ViewModelT = self.createViewModel()
 
-    public private(set) final lazy var messageViewModel: ViewModelT = self.createViewModel()
+    public private(set) final var messageViewModel: ViewModelT {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _messageViewModel
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _messageViewModel = newValue
+        }
+    }
 
     open func createViewModel() -> ViewModelT {
         let viewModel = self.viewModelBuilder.createViewModel(self.messageModel)
