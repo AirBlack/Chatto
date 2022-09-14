@@ -39,9 +39,9 @@ public enum PhotosInputViewPhotoSource: Equatable {
     case gallery
 }
 
-public protocol PhotosInputViewDelegate: AnyObject {
+public protocol PhotosInputViewDelegate: AnyObject { // TODO: Rename whole input item into MediaInput
     func inputView(_ inputView: PhotosInputViewProtocol,
-                   didSelectImage image: UIImage,
+                   didSelectMedia content: TakenMedia.TakenMediaContent,
                    source: PhotosInputViewPhotoSource)
     func inputViewDidRequestCameraPermission(_ inputView: PhotosInputViewProtocol)
     func inputViewDidRequestPhotoLibraryPermission(_ inputView: PhotosInputViewProtocol)
@@ -221,10 +221,10 @@ extension PhotosInputView: UICollectionViewDelegateFlowLayout {
                 self.delegate?.inputViewDidRequestCameraPermission(self)
             } else {
                 self.liveCameraPresenter.cameraPickerWillAppear()
-                self.cameraPicker.presentCameraPicker(onImageTaken: { [weak self] (result) in
+                self.cameraPicker.presentCameraPicker(onMediaTaken: { [weak self] (result) in
                     guard let sSelf = self else { return }
                     if let result = result {
-                        sSelf.delegate?.inputView(sSelf, didSelectImage: result.image, source: .camera(result.cameraType))
+                        sSelf.delegate?.inputView(sSelf, didSelectMedia: result.content, source: .camera(result.cameraType))
                     }
                 }, onCameraPickerDismissed: { [weak self] in
                     self?.liveCameraPresenter.cameraPickerDidDisappear()
@@ -236,8 +236,16 @@ extension PhotosInputView: UICollectionViewDelegateFlowLayout {
                 self.delegate?.inputViewDidRequestPhotoLibraryPermission(self)
             } else {
                 let request = self.dataProvider.requestFullImage(at: indexPath.item - 1, progressHandler: nil, completion: { [weak self] result in
-                    guard let sSelf = self, let image = result.image else { return }
-                    sSelf.delegate?.inputView(sSelf, didSelectImage: image, source: .gallery)
+                    guard let sSelf = self, case let .success(content) = result else { return }
+                    let media: TakenMedia.TakenMediaContent = {
+                        switch content {
+                        case let .image(image):
+                            return .image(image)
+                        case let .video(url, _):
+                            return .video(url)
+                        }
+                    }()
+                    sSelf.delegate?.inputView(sSelf, didSelectMedia: media, source: .gallery)
                 })
                 self.cellProvider.configureFullImageLoadingIndicator(at: indexPath, request: request)
             }

@@ -23,6 +23,7 @@
 */
 
 import UIKit
+import MobileCoreServices
 
 final class DeviceImagePicker: NSObject, ImagePicker, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     let controller: UIViewController
@@ -37,6 +38,9 @@ final class DeviceImagePicker: NSObject, ImagePicker, UIImagePickerControllerDel
         super.init()
         pickerController.delegate = self
         pickerController.sourceType = .camera
+        pickerController.allowsEditing = true
+        pickerController.videoMaximumDuration = 15
+        pickerController.mediaTypes = [kUTTypeMovie as String, kUTTypeImage as String]
     }
 
     @objc

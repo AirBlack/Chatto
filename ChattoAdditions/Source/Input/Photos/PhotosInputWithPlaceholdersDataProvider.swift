@@ -46,12 +46,21 @@ typealias PhotosInputDataProviderProgressHandler = (Double) -> Void
 typealias PhotosInputDataProviderCompletion = (PhotosInputDataProviderResult) -> Void
 
 enum PhotosInputDataProviderResult {
-    case success(UIImage)
+    enum Content {
+        case image(UIImage)
+        case video(URL, previewImage: UIImage)
+    }
+    case success(Content)
     case error(Error?)
 
     var image: UIImage? {
-        guard case let .success(resultImage) = self else { return nil }
-        return resultImage
+        guard case let .success(content) = self else { return nil }
+        switch content {
+        case let .image(image):
+            return image
+        case let .video(_, image):
+            return image
+        }
     }
 }
 

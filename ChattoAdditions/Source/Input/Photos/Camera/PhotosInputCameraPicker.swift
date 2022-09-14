@@ -23,26 +23,33 @@
 */
 
 import UIKit
+import MobileCoreServices
 
-public struct TakenImage {
-    public let image: UIImage
+public struct TakenMedia {
+    
+    public enum TakenMediaContent {
+        case image(UIImage)
+        case video(URL)
+    }
+    
+    public let content: TakenMediaContent
     public let cameraType: CameraType
 
-    public init(image: UIImage, cameraType: CameraType) {
-        self.image = image
+    public init(content: TakenMediaContent, cameraType: CameraType) {
+        self.content = content
         self.cameraType = cameraType
     }
 }
 
 public protocol PhotosInputCameraPickerProtocol {
-    func presentCameraPicker(onImageTaken: @escaping (TakenImage?) -> Void, onCameraPickerDismissed: @escaping () -> Void)
+    func presentCameraPicker(onMediaTaken: @escaping (TakenMedia?) -> Void, onCameraPickerDismissed: @escaping () -> Void)
 }
 
 final class PhotosInputCameraPicker: PhotosInputCameraPickerProtocol, ImagePickerDelegate {
 
     private let presentingControllerProvider: () -> UIViewController?
     private var imagePicker: ImagePicker?
-    private var completionBlocks: (onImageTaken: (TakenImage?) -> Void, onCameraPickerDismissed: () -> Void)?
+    private var completionBlocks: (onMediaTaken: (TakenMedia?) -> Void, onCameraPickerDismissed: () -> Void)?
 
     convenience init(presentingController: UIViewController?) {
         self.init(presentingControllerProvider: { [weak presentingController] in presentingController })
@@ -52,33 +59,50 @@ final class PhotosInputCameraPicker: PhotosInputCameraPickerProtocol, ImagePicke
         self.presentingControllerProvider = presentingControllerProvider
     }
 
-    func presentCameraPicker(onImageTaken: @escaping (TakenImage?) -> Void, onCameraPickerDismissed: @escaping () -> Void) {
+    func presentCameraPicker(onMediaTaken: @escaping (TakenMedia?) -> Void, onCameraPickerDismissed: @escaping () -> Void) {
         guard let presentingController = self.presentingControllerProvider(),
             let imagePicker = ImagePickerStore.factory.makeImagePicker(delegate: self) else {
-                onImageTaken(nil)
+                onMediaTaken(nil)
                 onCameraPickerDismissed()
                 return
         }
-        self.completionBlocks = (onImageTaken: onImageTaken, onCameraPickerDismissed: onCameraPickerDismissed)
+        self.completionBlocks = (onMediaTaken: onMediaTaken, onCameraPickerDismissed: onCameraPickerDismissed)
         self.imagePicker = imagePicker
         presentingController.present(imagePicker.controller, animated: true, completion: nil)
     }
 
     func imagePickerDidFinish(_ picker: ImagePicker, mediaInfo: [UIImagePickerController.InfoKey: Any]) {
-        let image = mediaInfo[UIImagePickerController.InfoKey.originalImage] as? UIImage
-        self.finishPickingImage(image, fromPicker: picker)
+        let content: TakenMedia.TakenMediaContent? = {
+            let mediaType = mediaInfo[UIImagePickerController.InfoKey.mediaType] as? String
+            switch mediaType {
+            case "\(kUTTypeMovie as String)":
+                guard let url = mediaInfo[UIImagePickerController.InfoKey.mediaURL] as? URL else {
+                    return nil
+                }
+                
+                return .video(url)
+            default:
+                guard let image = mediaInfo[UIImagePickerController.InfoKey.originalImage] as? UIImage else {
+                    return nil
+                }
+                
+                return .image(image)
+            }
+        }()
+        
+        self.finishPickingContent(content, fromPicker: picker)
     }
 
     func imagePickerDidCancel(_ picker: ImagePicker) {
-        self.finishPickingImage(nil, fromPicker: picker)
+        self.finishPickingContent(nil, fromPicker: picker)
     }
 
-    private func finishPickingImage(_ image: UIImage?, fromPicker picker: ImagePicker) {
+    private func finishPickingContent(_ content: TakenMedia.TakenMediaContent?, fromPicker picker: ImagePicker) {
         picker.controller.dismiss(animated: true, completion: self.completionBlocks?.onCameraPickerDismissed)
-        if let image = image {
-            self.completionBlocks?.onImageTaken(TakenImage(image: image, cameraType: picker.cameraType))
+        if let content = content {
+            self.completionBlocks?.onMediaTaken(TakenMedia(content: content, cameraType: picker.cameraType))
         } else {
-            self.completionBlocks?.onImageTaken(nil)
+            self.completionBlocks?.onMediaTaken(nil)
         }
         self.completionBlocks = nil
         self.imagePicker = nil

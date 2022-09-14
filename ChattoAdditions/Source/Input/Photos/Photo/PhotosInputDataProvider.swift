@@ -84,7 +84,7 @@ final class PhotosInputDataProvider: NSObject, PhotosInputDataProviderProtocol, 
 
             let fetchResult: PHFetchResult<PHAsset> = {
                 if let userLibraryCollection = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .smartAlbumUserLibrary, options: nil).firstObject {
-                    return PHAsset.fetchAssets(in: userLibraryCollection, options: fetchOptions(NSPredicate(format: "mediaType = \(PHAssetMediaType.image.rawValue)")))
+                    return PHAsset.fetchAssets(in: userLibraryCollection, options: fetchOptions(NSPredicate(format: "mediaType = %d || mediaType = %d", PHAssetMediaType.image.rawValue, PHAssetMediaType.video.rawValue)))
                 } else {
                     return PHAsset.fetchAssets(with: .image, options: fetchOptions(nil))
                 }
@@ -120,7 +120,7 @@ final class PhotosInputDataProvider: NSObject, PhotosInputDataProviderProtocol, 
         requestId = imageManager.requestImage(for: asset, targetSize: targetSize, contentMode: .aspectFill, options: options) { (image, info) in
             let result: PhotosInputDataProviderResult
             if let image = image {
-                result = .success(image)
+                result = .success(.image(image))
             } else {
                 result = .error(info?[PHImageErrorKey] as? Error)
             }
@@ -147,25 +147,57 @@ final class PhotosInputDataProvider: NSObject, PhotosInputDataProviderProtocol, 
             let asset = fetchResult[index]
             let request = PhotosInputDataProviderImageRequest()
             request.observeProgress(with: progressHandler, completion: completion)
-            let options = self.makeFullImageRequestOptions()
-            options.progressHandler = { (progress, _, _, _) -> Void in
-                DispatchQueue.main.async {
-                    request.handleProgressChange(with: progress)
-                }
-            }
+
             var requestId: Int32 = -1
             self.fullImageRequests[asset] = request
-            requestId = imageManager.requestImageData(for: asset, options: options, resultHandler: { [weak self] (data, _, _, info) in
-                guard let sSelf = self else { return }
-                let result: PhotosInputDataProviderResult
-                if let data = data, let image = UIImage(data: data) {
-                    result = .success(image)
-                } else {
-                    result = .error(info?[PHImageErrorKey] as? Error)
+            
+            if asset.mediaType == .video {
+                requestId = imageManager.requestAVAsset(forVideo: asset, options: nil, resultHandler: { [weak self] avAsset, avAuioMix, info in
+                    let result: PhotosInputDataProviderResult
+                    if let avAsset = avAsset,
+                       let avUrlAsset = avAsset as? AVURLAsset {
+                        let url = avUrlAsset.url
+                        
+                        let imageGenerator = AVAssetImageGenerator(asset: avAsset)
+                        imageGenerator.appliesPreferredTrackTransform = true
+                        
+                        var actualTime: CMTime = .zero
+                        
+                        do {
+                            let imageRef = try imageGenerator.copyCGImage(at: .zero, actualTime: &actualTime)
+                            let image = UIImage(cgImage: imageRef)
+                            
+                            result = .success(.video(url, previewImage: image))
+                        } catch let error {
+                            result = .error(error)
+                        }
+                    } else {
+                        result = .error(info?[PHImageErrorKey] as? Error)
+                    }
+                    DispatchQueue.main.async { [weak self] in
+                        request.handleCompletion(with: result)
+                        self?.fullImageRequests[asset] = nil
+                    }
+                })
+            } else {
+                let options = self.makeFullImageRequestOptions()
+                options.progressHandler = { (progress, _, _, _) -> Void in
+                    DispatchQueue.main.async {
+                        request.handleProgressChange(with: progress)
+                    }
                 }
-                request.handleCompletion(with: result)
-                sSelf.fullImageRequests[asset] = nil
-            })
+                requestId = imageManager.requestImageData(for: asset, options: options, resultHandler: { [weak self] (data, _, _, info) in
+                    guard let sSelf = self else { return }
+                    let result: PhotosInputDataProviderResult
+                    if let data = data, let image = UIImage(data: data) {
+                        result = .success(.image(image))
+                    } else {
+                        result = .error(info?[PHImageErrorKey] as? Error)
+                    }
+                    request.handleCompletion(with: result)
+                    sSelf.fullImageRequests[asset] = nil
+                })
+            }
             request.cancelBlock = { [weak self, weak request] in
                 guard let sSelf = self, let sRequest = request else { return }
                 sSelf.cancelFullImageRequest(sRequest)
