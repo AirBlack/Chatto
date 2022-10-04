@@ -23,6 +23,7 @@
 */
 
 import UIKit
+import Foundation
 
 public protocol CellRevealing {
     var allowRevealing: Bool { get }
@@ -44,13 +45,28 @@ public protocol ReplyIndicatorRevealerDelegate: AnyObject {
     func didCancelReplyGesture(at: IndexPath)
 }
 
+private extension Comparable where Self: SignedNumeric {
+    var signValue: Int {
+        guard self != -self else {
+            return 0
+        }
+        return self > -self ? 1 : -1
+    }
+}
+
 public struct CellPanGestureHandlerConfig {
+    public enum HorizontalAxis {
+        case left
+        case right
+    }
+    
     public let angleThresholdInRads: CGFloat
     public let threshold: CGFloat
     public let accessoryViewTranslationMultiplier: CGFloat
     public let replyIndicatorTranslationMultiplier: CGFloat
     public var allowReplyRevealing: Bool = false
     public var allowTimestampRevealing: Bool = true
+    public var replyRevealingAxis: HorizontalAxis = .left
 
     public static func defaultConfig() -> CellPanGestureHandlerConfig {
         .init(
@@ -62,11 +78,11 @@ public struct CellPanGestureHandlerConfig {
     }
 
     func transformAccessoryViewTranslation(_ translation: CGFloat) -> CGFloat {
-        (translation - self.threshold) * self.accessoryViewTranslationMultiplier
+        (max(CGFloat.zero, abs(translation) - self.threshold)) * self.accessoryViewTranslationMultiplier * CGFloat(translation.signValue)
     }
 
     func transformReplyIndicatorTranslation(_ translation: CGFloat) -> CGFloat {
-        (translation - self.threshold) * self.replyIndicatorTranslationMultiplier
+        (max(CGFloat.zero, abs(translation) - self.threshold)) * self.replyIndicatorTranslationMultiplier * CGFloat(translation.signValue)
     }
 }
 
@@ -105,17 +121,17 @@ final class CellPanGestureHandler: NSObject, UIGestureRecognizerDelegate {
             break
         case .changed:
             let translation = panRecognizer.translation(in: self.collectionView)
-            if translation.x < 0 {
+            if (self.config.replyRevealingAxis == .left && translation.x < 0) || (self.config.replyRevealingAxis == .right && translation.x > 0) {
                 guard self.config.allowTimestampRevealing else { return }
-                self.revealAccessoryView(atOffset: self.config.transformAccessoryViewTranslation(-translation.x))
-            } else {
+                self.revealAccessoryView(atOffset: self.config.transformAccessoryViewTranslation(translation.x))
+            } else if (self.config.replyRevealingAxis == .left && translation.x > 0) || (self.config.replyRevealingAxis == .right && translation.x < 0) {
                 guard let indexPath = self.collectionView.indexPathForItem(at: panRecognizer.location(in: self.collectionView)),
                     let cell = self.collectionView.cellForItem(at: indexPath) as? ReplyIndicatorRevealable,
                     cell.allowRevealing,
                     self.config.allowReplyRevealing,
                     cell.canShowReply() else { return }
 
-                if self.replyIndexPath == nil, translation.x > self.config.threshold {
+                if self.replyIndexPath == nil, abs(translation.x) > self.config.threshold {
                     self.replyIndexPath = indexPath
                     self.collectionView.isScrollEnabled = false
                 }
@@ -193,7 +209,7 @@ final class CellPanGestureHandler: NSObject, UIGestureRecognizerDelegate {
 
     private func cleanUpRevealingReply() {
         self.overReplyThreshold = false
-        self.revealReplyIndicator(atOffset: 0)
+        self.revealReplyIndicator(atOffset: self.config.replyRevealingAxis == .left ? +CGFloat.zero: -CGFloat.zero)
         self.collectionView.isScrollEnabled = true
         self.replyIndexPath = nil
     }
