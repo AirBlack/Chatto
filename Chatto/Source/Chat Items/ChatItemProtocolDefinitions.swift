@@ -87,6 +87,8 @@ public extension ChatItemPresenterProtocol { // Optionals
     func shouldShowMenu() -> Bool { return false }
     func canPerformMenuControllerAction(_ action: Selector) -> Bool { return false }
     func performMenuControllerAction(_ action: Selector) {}
+    @available(iOS 13.0, *)
+    func contextMenuConfiguration() -> UIContextMenuConfiguration? { nil }
 }
 
 public protocol ChatItemPresenterBuilderProtocol {
