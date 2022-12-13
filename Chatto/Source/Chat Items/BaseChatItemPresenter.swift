@@ -116,6 +116,11 @@ open class BaseChatItemPresenter<CellT: UICollectionViewCell>: ChatItemPresenter
     open func performMenuControllerAction(_ action: Selector) {
         assert(self.canPerformMenuControllerAction(action))
     }
+    
+    @available(iOS 13.0, *)
+    open func contextMenuConfiguration() -> UIContextMenuConfiguration? {
+        return nil
+    }
 
     // MARK: - ChatItemSpotlighting
 

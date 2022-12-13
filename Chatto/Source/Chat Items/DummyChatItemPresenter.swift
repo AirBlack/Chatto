@@ -52,6 +52,11 @@ class DummyChatItemPresenter: ChatItemPresenterProtocol {
     func configureCell(_ cell: UICollectionViewCell, decorationAttributes: ChatItemDecorationAttributesProtocol?) {
         cell.isHidden = true
     }
+    
+    @available(iOS 13.0, *)
+    func contextMenuConfiguration() -> UIContextMenuConfiguration? {
+        return nil
+    }
 }
 
 class DummyCollectionViewCell: UICollectionViewCell {}

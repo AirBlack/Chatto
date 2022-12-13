@@ -83,25 +83,43 @@ extension BaseChatViewController: ChatCollectionViewLayoutDelegate {
         }
     }
 
+    @available(iOS, obsoleted: 13, message: "Use contextMenuConfiguration instead")
     @objc(collectionView:shouldShowMenuForItemAtIndexPath:)
     open func collectionView(_ collectionView: UICollectionView, shouldShowMenuForItemAt indexPath: IndexPath?) -> Bool {
         // Note: IndexPath set optional due to https://github.com/badoo/Chatto/issues/310
         // Might be related: https://bugs.swift.org/browse/SR-2417
         guard let indexPath = indexPath else { return false }
+        guard #unavailable(iOS 13) else {
+            return false
+        }
         return self.presenterForIndexPath(indexPath).shouldShowMenu()
     }
 
+    @available(iOS, obsoleted: 13, message: "Use contextMenuConfiguration instead")
     @objc(collectionView:canPerformAction:forItemAtIndexPath:withSender:)
     open func collectionView(_ collectionView: UICollectionView, canPerformAction action: Selector, forItemAt indexPath: IndexPath?, withSender sender: Any?) -> Bool {
         // Note: IndexPath set optional due to https://github.com/badoo/Chatto/issues/247. SR-2417 might be related
         // Might be related: https://bugs.swift.org/browse/SR-2417
         guard let indexPath = indexPath else { return false }
+        guard #unavailable(iOS 13) else {
+            return false
+        }
         return self.presenterForIndexPath(indexPath).canPerformMenuControllerAction(action)
     }
 
+    @available(iOS, obsoleted: 13, message: "Use contextMenuConfiguration instead")
     @objc(collectionView:performAction:forItemAtIndexPath:withSender:)
     open func collectionView(_ collectionView: UICollectionView, performAction action: Selector, forItemAt indexPath: IndexPath, withSender sender: Any?) {
+        guard #unavailable(iOS 13) else {
+            return
+        }
         self.presenterForIndexPath(indexPath).performMenuControllerAction(action)
+    }
+    
+    @available(iOS 13.0, *)
+    @objc(collectionView:contextMenuConfigurationForItemAtIndexPath:point:)
+    open func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
+        return self.presenterForIndexPath(indexPath).contextMenuConfiguration()
     }
 
     func presenterForIndexPath(_ indexPath: IndexPath) -> ChatItemPresenterProtocol {
