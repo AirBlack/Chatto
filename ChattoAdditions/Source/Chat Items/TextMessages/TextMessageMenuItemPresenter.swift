@@ -28,6 +28,8 @@ public protocol TextMessageMenuItemPresenterProtocol {
     func shouldShowMenu(for text: String, item: MessageModelProtocol) -> Bool
     func canPerformMenuControllerAction(_ action: Selector, for text: String, item: MessageModelProtocol) -> Bool
     func performMenuControllerAction(_ action: Selector, for text: String, item: MessageModelProtocol)
+    @available(iOS 13, *)
+    func contextMenuConfiguration() -> UIContextMenuConfiguration?
 }
 
 public final class TextMessageMenuItemPresenter: TextMessageMenuItemPresenterProtocol {
@@ -43,7 +45,6 @@ public final class TextMessageMenuItemPresenter: TextMessageMenuItemPresenterPro
     }
 
     // MARK: - TextMessageMenuItemPresenterProtocol
-
     public func shouldShowMenu(for text: String, item: MessageModelProtocol) -> Bool {
         return true
     }
@@ -58,6 +59,11 @@ public final class TextMessageMenuItemPresenter: TextMessageMenuItemPresenterPro
             return
         }
         self.pasteboard.string = text
+    }
+    
+    @available(iOS 13, *)
+    public func contextMenuConfiguration() -> UIContextMenuConfiguration? {
+        return nil
     }
 }
 

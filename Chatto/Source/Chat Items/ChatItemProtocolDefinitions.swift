@@ -35,11 +35,8 @@ public protocol ChatItemDecorationAttributesProtocol {
 }
 
 public protocol ChatItemMenuPresenterProtocol {
-    @available(*, deprecated, message: "Use contextMenuConfiguration instead")
     func shouldShowMenu() -> Bool
-    @available(*, deprecated, message: "Use contextMenuConfiguration instead")
     func canPerformMenuControllerAction(_ action: Selector) -> Bool
-    @available(*, deprecated, message: "Use contextMenuConfiguration instead")
     func performMenuControllerAction(_ action: Selector)
     @available(iOS 13.0, *)
     func contextMenuConfiguration() -> UIContextMenuConfiguration?
