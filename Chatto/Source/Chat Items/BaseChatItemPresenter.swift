@@ -118,7 +118,7 @@ open class BaseChatItemPresenter<CellT: UICollectionViewCell>: ChatItemPresenter
     }
     
     @available(iOS 13.0, *)
-    open func contextMenuConfiguration() -> UIContextMenuConfiguration? {
+    open func contextMenuConfiguration() -> ChatItemContextMenuConfiguration? {
         return nil
     }
 

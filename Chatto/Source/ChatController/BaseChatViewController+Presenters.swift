@@ -24,6 +24,11 @@
 
 import UIKit
 
+@available(iOS 13, *)
+public protocol ContextMenuPreviewProvidableView {
+    var contextMenuPreview: UITargetedPreview { get }
+}
+
 extension BaseChatViewController: ChatCollectionViewLayoutDelegate {
 
     public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -107,7 +112,47 @@ extension BaseChatViewController: ChatCollectionViewLayoutDelegate {
     @available(iOS 13.0, *)
     @objc(collectionView:contextMenuConfigurationForItemAtIndexPath:point:)
     open func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
-        return self.presenterForIndexPath(indexPath).contextMenuConfiguration()
+        guard let configuration = self.presenterForIndexPath(indexPath).contextMenuConfiguration() else {
+            return nil
+        }
+        
+        return .init(
+            identifier: indexPath as NSCopying,
+            previewProvider: configuration.previewProvider,
+            actionProvider: configuration.actionProvider
+        )
+    }
+    
+    @available(iOS 13.0, *)
+    open func collectionView(_ collectionView: UICollectionView, previewForHighlightingContextMenuWithConfiguration configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
+        guard let indexPath = configuration.identifier as? IndexPath,
+              let cell = collectionView.cellForItem(at: indexPath) else {
+            return nil
+        }
+        
+        if let previewProvidable = cell as? ContextMenuPreviewProvidableView {
+            return previewProvidable.contextMenuPreview
+        }
+        
+        let targetedPreview = UITargetedPreview(view: cell)
+        targetedPreview.parameters.backgroundColor = .clear
+        return targetedPreview
+    }
+    
+    @available(iOS 13.0, *)
+    open func collectionView(_ collectionView: UICollectionView, previewForDismissingContextMenuWithConfiguration configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
+        guard let indexPath = configuration.identifier as? IndexPath,
+              let cell = collectionView.cellForItem(at: indexPath) else {
+            return nil
+        }
+        
+        if let previewProvidable = cell as? ContextMenuPreviewProvidableView {
+            return previewProvidable.contextMenuPreview
+        }
+        
+        let targetedPreview = UITargetedPreview(view: cell)
+        targetedPreview.parameters.backgroundColor = .clear
+        return targetedPreview
     }
 
     func presenterForIndexPath(_ indexPath: IndexPath) -> ChatItemPresenterProtocol {

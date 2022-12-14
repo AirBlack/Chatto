@@ -34,12 +34,16 @@ public protocol ChatItemDecorationAttributesProtocol {
     var bottomMargin: CGFloat { get }
 }
 
+@available(iOS 13.0, *)
+public typealias ChatItemContextMenuConfiguration = (previewProvider: UIContextMenuContentPreviewProvider?, actionProvider: UIContextMenuActionProvider?)
+
+
 public protocol ChatItemMenuPresenterProtocol {
     func shouldShowMenu() -> Bool
     func canPerformMenuControllerAction(_ action: Selector) -> Bool
     func performMenuControllerAction(_ action: Selector)
     @available(iOS 13.0, *)
-    func contextMenuConfiguration() -> UIContextMenuConfiguration?
+    func contextMenuConfiguration() -> ChatItemContextMenuConfiguration?
 }
 
 @available(iOS 13.0, *)
@@ -85,7 +89,7 @@ public extension ChatItemPresenterProtocol { // Optionals
     func canPerformMenuControllerAction(_ action: Selector) -> Bool { return false }
     func performMenuControllerAction(_ action: Selector) {}
     @available(iOS 13.0, *)
-    func contextMenuConfiguration() -> UIContextMenuConfiguration? { nil }
+    func contextMenuConfiguration() -> ChatItemContextMenuConfiguration? { nil }
 }
 
 public protocol ChatItemPresenterBuilderProtocol {
