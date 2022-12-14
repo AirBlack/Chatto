@@ -29,7 +29,7 @@ public protocol TextMessageMenuItemPresenterProtocol {
     func canPerformMenuControllerAction(_ action: Selector, for text: String, item: MessageModelProtocol) -> Bool
     func performMenuControllerAction(_ action: Selector, for text: String, item: MessageModelProtocol)
     @available(iOS 13, *)
-    func contextMenuConfiguration() -> UIContextMenuConfiguration?
+    func contextMenuConfiguration() -> ChatItemContextMenuConfiguration?
 }
 
 public final class TextMessageMenuItemPresenter: TextMessageMenuItemPresenterProtocol {
@@ -62,7 +62,7 @@ public final class TextMessageMenuItemPresenter: TextMessageMenuItemPresenterPro
     }
     
     @available(iOS 13, *)
-    public func contextMenuConfiguration() -> UIContextMenuConfiguration? {
+    public func contextMenuConfiguration() -> ChatItemContextMenuConfiguration? {
         return nil
     }
 }
